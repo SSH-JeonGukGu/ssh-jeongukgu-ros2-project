@@ -1,0 +1,42 @@
+# ============================================================
+# docker-compose.yml
+# 사용법: docker compose up
+# ============================================================
+services:
+
+  # ----------------------------------------------------------
+  # 메인 ROS2 개발 컨테이너
+  # ----------------------------------------------------------
+  ros2_dev:
+    build:
+      context: .               # Dockerfile이 있는 경로
+      dockerfile: Dockerfile
+      args:
+        USERNAME: ros
+        USER_UID: 1000         # 로컬 사용자 UID와 맞추면 파일 권한 문제 없음
+        USER_GID: 1000
+    image: pinky_ros2:jazzy    # 빌드된 이미지 이름 (팀원 간 이름 통일)
+    container_name: pinky_dev  # 컨테이너 이름 지정 (docker ps에서 보기 편하게)
+
+    volumes:
+      # 로컬 src 폴더를 컨테이너와 실시간 동기화
+      # 로컬에서 편집 → 컨테이너 안에 즉시 반영
+      - ./src:/ros2_ws/src
+      
+      # X11 소켓 마운트 (RViz2 등 GUI 앱 실행용)
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+
+    environment:
+      - ROS_DOMAIN_ID=42
+      - DISPLAY=${DISPLAY}     # GUI (RViz2, Gazebo) 출력을 위해 필요
+
+    # ROS2 DDS 통신을 위해 host 네트워크 사용
+    # (실제 로봇과 같은 네트워크에서 통신 가능)
+    network_mode: host
+
+    # 하드웨어 접근 권한 (실제 로봇 센서, LiDAR 등 연결 시 필요)
+    privileged: true
+
+    stdin_open: true           # docker run -i 에 해당
+    tty: true                  # docker run -t 에 해당 (터미널 색상 등)
+

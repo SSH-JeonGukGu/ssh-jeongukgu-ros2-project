@@ -1,0 +1,69 @@
+{
+  "name": "ROS2 Jazzy (Ubuntu Noble)",
+
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "args": {
+      "USERNAME": "ros",
+      "USER_UID": "1000",
+      "USER_GID": "1000"
+    }
+  },
+
+  // workspaceMount 제거 → VSCode가 프로젝트 루트를 /workspaces/프로젝트명 에 마운트
+  // workspaceFolder를 /ros2_ws로 지정해서 심링크로 연결
+  "workspaceFolder": "/ros2_ws",
+
+  // 프로젝트 루트를 /workspaces 아래에 마운트하고
+  // src 폴더만 /ros2_ws/src 로 별도 마운트
+  "mounts": [
+    "source=${localWorkspaceFolder}/src,target=/ros2_ws/src,type=bind,consistency=cached",
+    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/src,target=/ros2_ws/src,type=bind,consistency=cached",
+    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached",
+
+    // 추가: 로컬 SSH 키를 컨테이너에 공유 (읽기 전용)
+    "source=${localEnv:HOME}/.ssh,target=/home/ros/.ssh,type=bind,consistency=cached,readonly"
+  ],
+
+  "containerEnv": {
+    "DISPLAY": "unix:0",
+    "ROS_DOMAIN_ID": "42",
+    "ROS_LOCALHOST_ONLY": "0"
+  },
+
+  "runArgs": [
+    "--net=host",
+    "--pid=host",
+    "--ipc=host",
+    "--privileged",
+    "-e", "DISPLAY=${localEnv:DISPLAY}"
+  ],
+
+  "postCreateCommand": "sudo rosdep update && rosdep install --from-paths /ros2_ws/src --ignore-src -y 2>/dev/null || echo 'src is empty, skipping rosdep'",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-python.python",
+        "ms-iot.vscode-ros",
+        "ms-vscode.cmake-tools",
+        "eamodio.gitlens",
+        "smilerobotics.urdf",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "python.defaultInterpreterPath": "/usr/bin/python3",
+        "remote.autoForwardPorts": false,
+        // CMake Tools가 자동으로 CMakeLists.txt를 탐색하지 않도록 설정
+        // ROS2는 colcon으로 빌드하므로 CMake Tools의 자동감지 불필요
+        "cmake.configureOnOpen": false,
+        "cmake.sourceDirectory": ""
+      }
+    }
+  },
+
+  "remoteUser": "ros"
+}
